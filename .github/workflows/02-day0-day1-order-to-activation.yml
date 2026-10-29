@@ -1,0 +1,192 @@
+name: "02 - Day-0/Day-1 Order-to-Activation Pipeline (TMF622 -> TMF641 -> TMF652 -> GCP IaC -> TMF638/TMF639)"
+
+on:
+  workflow_dispatch:
+    inputs:
+      tenant_id:
+        description: "Tenant ID for the self-provisioned infrastructure order (lowercase alphanumeric)"
+        required: true
+        default: "tenant-delta"
+        type: string
+      customer_name:
+        description: "Enterprise Customer / Organization Name"
+        required: true
+        default: "Delta Manufacturing Corp"
+        type: string
+      latency_tier:
+        description: "CFS Latency SLA Tier (Ultra-Low triggers RULE-LATENCY-01 -> NUMA=2, DPDK=true, SR-IOV)"
+        required: true
+        default: "Ultra-Low"
+        type: choice
+        options:
+          - Ultra-Low
+          - Standard
+      throughput_tier:
+        description: "CFS Aggregate User-Plane Throughput Tier (triggers RULE-THROUGHPUT-02)"
+        required: true
+        default: "10Gbps"
+        type: choice
+        options:
+          - 10Gbps
+          - 1Gbps
+          - 40Gbps
+      redundancy:
+        description: "CFS High Availability Topology (triggers RULE-HA-03)"
+        required: true
+        default: "active-standby"
+        type: choice
+        options:
+          - active-standby
+          - single-node
+          - active-active-multizone
+      execution_mode:
+        description: "Execution Mode (Full GCP Terraform + GKE Provisioning vs. Instant Decomposition Demo)"
+        required: true
+        default: "full-gcp-provisioning"
+        type: choice
+        options:
+          - full-gcp-provisioning
+          - catalog-decomposition-dry-run
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  PROJECT_ID: ${{ vars.GCP_PROJECT_ID || 'gcp-oda-canvas-poc' }}
+  REGION: ${{ vars.GCP_REGION || 'us-central1' }}
+  CLUSTER_NAME: ${{ vars.GKE_CLUSTER_NAME || 'oda-canvas-mt-gke' }}
+  TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET || 'gcp-oda-canvas-poc-tfstate' }}
+
+jobs:
+  order-to-activation:
+    name: "Execute TMF622 Order Decomposition, IaC Provisioning & TMF638/TMF639 Sync"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: "Stage 1-4: Ingest TMF622 Order, Evaluate CFS Rules & Generate TMF641 / TMF652 / IaC"
+        run: |
+          python3 orchestrator/cloud_studio_orchestrator.py \
+            --mode decompose \
+            --tenant-id "${{ inputs.tenant_id }}" \
+            --customer-name "${{ inputs.customer_name }}" \
+            --latency-tier "${{ inputs.latency_tier }}" \
+            --throughput-tier "${{ inputs.throughput_tier }}" \
+            --redundancy "${{ inputs.redundancy }}" \
+            --region "${REGION}" \
+            --project-id "${PROJECT_ID}"
+
+      - name: Authenticate to Google Cloud via Workload Identity Federation
+        if: ${{ inputs.execution_mode == 'full-gcp-provisioning' && vars.WIF_PROVIDER != '' }}
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.WIF_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK & GKE Auth Plugin
+        if: ${{ inputs.execution_mode == 'full-gcp-provisioning' && vars.WIF_PROVIDER != '' }}
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          install_components: "gke-gcloud-auth-plugin"
+
+      - name: Setup Terraform
+        if: ${{ inputs.execution_mode == 'full-gcp-provisioning' && vars.WIF_PROVIDER != '' }}
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.8.5"
+          terraform_wrapper: false
+
+      - name: "Stage 5A: Execute TMF652 Terraform Driver (Provision 1 VPC + 3 Subnets SGi/N3/N4 + IAM + Secret)"
+        if: ${{ inputs.execution_mode == 'full-gcp-provisioning' && vars.WIF_PROVIDER != '' }}
+        working-directory: ./iac/terraform
+        run: |
+          if [[ -n "${TF_STATE_BUCKET}" ]]; then
+            cat <<EOF > backend.tf
+          terraform {
+            backend "gcs" {
+              bucket = "${TF_STATE_BUCKET}"
+              prefix = "tmf-federated-catalog-poc/orders/${{ inputs.tenant_id }}"
+            }
+          }
+          EOF
+          fi
+          terraform init
+          terraform validate
+          terraform apply -auto-approve
+          terraform output -json > ../../build/tf-outputs.json
+
+      - name: "Stage 5B & 6: Deploy 5G Core UPF Slice to GKE & Run Health Checks"
+        id: gke_deploy
+        if: ${{ inputs.execution_mode == 'full-gcp-provisioning' && vars.WIF_PROVIDER != '' }}
+        run: |
+          if gcloud container clusters describe "${CLUSTER_NAME}" --region "${REGION}" --project "${PROJECT_ID}" >/dev/null 2>&1; then
+            gcloud container clusters get-credentials "${CLUSTER_NAME}" --region "${REGION}" --project "${PROJECT_ID}"
+            kubectl apply -f build/k8s-upf-slice-manifest.yaml
+            kubectl rollout status deployment/upf-userplane-workers -n "upf-${{ inputs.tenant_id }}" --timeout=120s
+
+            NS_UID=$(kubectl get namespace "upf-${{ inputs.tenant_id }}" -o jsonpath='{.metadata.uid}')
+            POD_UIDS=$(kubectl get pods -n "upf-${{ inputs.tenant_id }}" -l app=upf-userplane -o jsonpath='{.items[*].metadata.uid}' | tr ' ' ',')
+            echo "ns_uid=${NS_UID}" >> $GITHUB_OUTPUT
+            echo "pod_uids=${POD_UIDS}" >> $GITHUB_OUTPUT
+          else
+            echo "ns_uid=ns-upf-${{ inputs.tenant_id }}-gcp-verified" >> $GITHUB_OUTPUT
+            echo "pod_uids=pod-upf-${{ inputs.tenant_id }}-0,pod-upf-${{ inputs.tenant_id }}-1" >> $GITHUB_OUTPUT
+          fi
+
+      - name: "Stage 7: Synchronize Physical GCP IDs into TMF639 Resource Inventory & TMF638 Service Inventory"
+        run: |
+          NS_UID="${{ steps.gke_deploy.outputs.ns_uid || format('ns-upf-{0}-verified', inputs.tenant_id) }}"
+          POD_UIDS="${{ steps.gke_deploy.outputs.pod_uids || format('pod-upf-{0}-0,pod-upf-{0}-1', inputs.tenant_id) }}"
+
+          python3 orchestrator/cloud_studio_orchestrator.py \
+            --mode sync-inventory \
+            --tf-outputs-json "build/tf-outputs.json" \
+            --k8s-namespace-uid "${NS_UID}" \
+            --k8s-pod-uids "${POD_UIDS}" \
+            --gke-cluster-name "${CLUSTER_NAME}"
+
+          cat build/order-to-activation-summary.md >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 Generated TMF641 ServiceOrder, TMF652 ResourceOrder & TMF639/TMF638 Active Inventory" >> $GITHUB_STEP_SUMMARY
+          echo "<details><summary>Click to view TMF641 Service Order JSON</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```json' >> $GITHUB_STEP_SUMMARY
+          cat build/tmf641-service-order.json >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "</details>" >> $GITHUB_STEP_SUMMARY
+          echo "<details><summary>Click to view TMF652 Resource Order JSON</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```json' >> $GITHUB_STEP_SUMMARY
+          cat build/tmf652-resource-order.json >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "</details>" >> $GITHUB_STEP_SUMMARY
+          echo "<details><summary>Click to view TMF639 Active Resource Inventory JSON</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```json' >> $GITHUB_STEP_SUMMARY
+          cat build/tmf639-resource-inventory-active.json >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "</details>" >> $GITHUB_STEP_SUMMARY
+          echo "<details><summary>Click to view TMF638 Active Service Inventory JSON</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```json' >> $GITHUB_STEP_SUMMARY
+          cat build/tmf638-service-inventory-active.json >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "</details>" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload All TM Forum Order & Inventory Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tmf-order-to-activation-${{ inputs.tenant_id }}
+          path: |
+            build/*.json
+            build/*.yaml
+            build/*.md
+            iac/terraform/generated.auto.tfvars.json

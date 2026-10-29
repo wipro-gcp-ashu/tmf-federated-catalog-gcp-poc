@@ -1,0 +1,70 @@
+name: "99 - Teardown Provisioned Order Infrastructure (Terraform & GKE Slice)"
+
+on:
+  workflow_dispatch:
+    inputs:
+      tenant_id:
+        description: "Tenant ID whose provisioned UPF VPC/Subnets and GKE slice should be destroyed"
+        required: true
+        default: "tenant-delta"
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  PROJECT_ID: ${{ vars.GCP_PROJECT_ID || 'gcp-oda-canvas-poc' }}
+  REGION: ${{ vars.GCP_REGION || 'us-central1' }}
+  CLUSTER_NAME: ${{ vars.GKE_CLUSTER_NAME || 'oda-canvas-mt-gke' }}
+  TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET || 'gcp-oda-canvas-poc-tfstate' }}
+
+jobs:
+  teardown-order:
+    name: "Destroy Tenant Order Resources & Transition Inventory to Terminated"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud via Workload Identity Federation
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.WIF_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK & GKE Auth Plugin
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          install_components: "gke-gcloud-auth-plugin"
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.8.5"
+          terraform_wrapper: false
+
+      - name: Delete Tenant UPF Slice Namespace from GKE (if active)
+        run: |
+          if gcloud container clusters describe "${CLUSTER_NAME}" --region "${REGION}" --project "${PROJECT_ID}" >/dev/null 2>&1; then
+            gcloud container clusters get-credentials "${CLUSTER_NAME}" --region "${REGION}" --project "${PROJECT_ID}"
+            kubectl delete namespace "upf-${{ inputs.tenant_id }}" --ignore-not-found=true
+          fi
+
+      - name: Destroy Provisioned GCP VPC, 3 Subnets (SGi/N3/N4), IAM & Secret
+        working-directory: ./iac/terraform
+        run: |
+          cat <<EOF > backend.tf
+          terraform {
+            backend "gcs" {
+              bucket = "${TF_STATE_BUCKET}"
+              prefix = "tmf-federated-catalog-poc/orders/${{ inputs.tenant_id }}"
+            }
+          }
+          EOF
+          terraform init
+          terraform destroy -auto-approve \
+            -var="project_id=${PROJECT_ID}" \
+            -var="region=${REGION}" \
+            -var="tenant_id=${{ inputs.tenant_id }}"

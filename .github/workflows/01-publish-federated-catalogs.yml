@@ -1,0 +1,92 @@
+name: "01 - Publish & Validate TM Forum Federated Catalogs (TMF634 -> TMF633 -> TMF620)"
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_to_gke:
+        description: "Publish catalogs to live GKE cluster (oda-canvas-mt-gke)?"
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  PROJECT_ID: ${{ vars.GCP_PROJECT_ID || 'gcp-oda-canvas-poc' }}
+  REGION: ${{ vars.GCP_REGION || 'us-central1' }}
+  CLUSTER_NAME: ${{ vars.GKE_CLUSTER_NAME || 'oda-canvas-mt-gke' }}
+
+jobs:
+  publish-federated-catalogs:
+    name: "Validate SID (GB922) Hierarchy & Publish TMF634 / TMF633 / TMF620"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: "Step 1-3: Validate 4-Layer TM Forum Federated Catalog Referential Integrity"
+        run: |
+          python3 orchestrator/cloud_studio_orchestrator.py --mode validate-catalogs
+          cat build/catalog-validation-report.md >> $GITHUB_STEP_SUMMARY
+
+      - name: Authenticate to Google Cloud via Workload Identity Federation
+        if: ${{ inputs.deploy_to_gke == true && vars.WIF_PROVIDER != '' }}
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.WIF_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK & GKE Auth Plugin
+        if: ${{ inputs.deploy_to_gke == true && vars.WIF_PROVIDER != '' }}
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          install_components: "gke-gcloud-auth-plugin"
+
+      - name: Publish Federated Catalogs to GKE (TMFC001, TMFC006, TMFC007)
+        if: ${{ inputs.deploy_to_gke == true && vars.WIF_PROVIDER != '' }}
+        run: |
+          echo "Checking if GKE cluster ${CLUSTER_NAME} is running in ${PROJECT_ID}..."
+          if gcloud container clusters describe "${CLUSTER_NAME}" --region "${REGION}" --project "${PROJECT_ID}" >/dev/null 2>&1; then
+            gcloud container clusters get-credentials "${CLUSTER_NAME}" --region "${REGION}" --project "${PROJECT_ID}"
+
+            kubectl apply -f orchestrator/k8s-tmf-federated-api-gateway.yaml
+
+            # Bundle Step 1 (TMF634), Step 2 (TMF633), Step 3 (TMF620) into ConfigMap store
+            python3 - <<'EOF'
+          import json
+          from pathlib import Path
+          from orchestrator.cloud_studio_orchestrator import load_federated_catalogs
+
+          cat = load_federated_catalogs()
+          out = Path("build/catalog-bundle")
+          out.mkdir(parents=True, exist_ok=True)
+          (out / "tmf634.json").write_text(json.dumps(list(cat["tmf634_resources"].values()), indent=2))
+          (out / "tmf633.json").write_text(json.dumps(list(cat["tmf633_rfs"].values()) + list(cat["tmf633_cfs"].values()), indent=2))
+          (out / "tmf620.json").write_text(json.dumps({
+              "productSpecifications": list(cat["tmf620_product_specs"].values()),
+              "productOfferings": list(cat["tmf620_product_offerings"].values())
+          }, indent=2))
+          EOF
+
+            kubectl create configmap tmf-federated-catalog-store \
+              -n tmf-federated-catalog \
+              --from-file=build/catalog-bundle/ \
+              --dry-run=client -o yaml | kubectl apply -f -
+
+            kubectl rollout status deployment/tmf-federated-catalog-api -n tmf-federated-catalog --timeout=120s
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### ☸️ Live GKE Federated Catalog Endpoints (`namespace: tmf-federated-catalog`)" >> $GITHUB_STEP_SUMMARY
+            echo '```text' >> $GITHUB_STEP_SUMMARY
+            kubectl get pods,svc -n tmf-federated-catalog >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          else
+            echo "GKE cluster ${CLUSTER_NAME} is not currently active; catalog validation completed in standalone mode."
+          fi
