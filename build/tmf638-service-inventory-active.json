@@ -1,0 +1,60 @@
+{
+  "synchronizedAt": "2026-10-29T06:50:21Z",
+  "services": [
+    {
+      "id": "svc-inv-cfs-tenant-delta",
+      "href": "/tmf-api/serviceInventory/v4/service/svc-inv-cfs-tenant-delta",
+      "name": "Private5G_Edge_Compute_CFS_tenant-delta",
+      "state": "active",
+      "serviceType": "CFS",
+      "@type": "CustomerFacingService",
+      "serviceSpecification": {
+        "id": "cfs-spec-private5g-edge-001",
+        "name": "Private5G_Edge_Compute_CFS"
+      },
+      "serviceCharacteristic": [
+        {
+          "name": "tenant_id",
+          "value": "tenant-delta"
+        },
+        {
+          "name": "throughput_tier",
+          "value": "10Gbps"
+        },
+        {
+          "name": "latency_tier",
+          "value": "Ultra-Low"
+        }
+      ],
+      "supportingService": [
+        {
+          "id": "svc-inv-rfs-tenant-delta",
+          "name": "5G_Core_UPF_Infra_RFS_tenant-delta",
+          "state": "active"
+        }
+      ]
+    },
+    {
+      "id": "svc-inv-rfs-tenant-delta",
+      "href": "/tmf-api/serviceInventory/v4/service/svc-inv-rfs-tenant-delta",
+      "name": "5G_Core_UPF_Infra_RFS_tenant-delta",
+      "state": "active",
+      "serviceType": "RFS",
+      "@type": "ResourceFacingService",
+      "serviceSpecification": {
+        "id": "rfs-spec-upf-infra-001",
+        "name": "5G_Core_UPF_Infra_RFS"
+      },
+      "supportingResource": [
+        {
+          "id": "res-inv-vpc-tenant-delta",
+          "name": "vpc-upf-tenant-delta"
+        },
+        {
+          "id": "res-inv-compute-tenant-delta",
+          "name": "worker-pool-upf-tenant-delta"
+        }
+      ]
+    }
+  ]
+}

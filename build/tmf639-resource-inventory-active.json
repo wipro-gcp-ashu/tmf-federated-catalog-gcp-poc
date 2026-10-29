@@ -1,0 +1,96 @@
+{
+  "synchronizedAt": "2026-10-29T06:50:21Z",
+  "healthCheckStatus": "PASS",
+  "resources": [
+    {
+      "id": "res-inv-vpc-tenant-delta",
+      "href": "/tmf-api/resourceInventoryManagement/v4/resource/res-inv-vpc-tenant-delta",
+      "name": "vpc-upf-tenant-delta",
+      "resourceStatus": "available",
+      "operationalState": "enable",
+      "usageState": "active",
+      "@type": "LogicalResource",
+      "resourceSpecification": {
+        "id": "res-spec-vpc-001",
+        "name": "TelcoVpcNetworkSpec"
+      },
+      "resourceCharacteristic": [
+        {
+          "name": "gcp_project_id",
+          "value": "gcp-oda-canvas-poc"
+        },
+        {
+          "name": "vpc_self_link",
+          "value": "projects/gcp-oda-canvas-poc/global/networks/vpc-upf-tenant-delta"
+        },
+        {
+          "name": "sgi_subnet_self_link",
+          "value": "projects/gcp-oda-canvas-poc/regions/us-central1/subnetworks/sgi-subnet-tenant-delta"
+        },
+        {
+          "name": "n3_subnet_self_link",
+          "value": "projects/gcp-oda-canvas-poc/regions/us-central1/subnetworks/n3-subnet-tenant-delta"
+        },
+        {
+          "name": "n4_subnet_self_link",
+          "value": "projects/gcp-oda-canvas-poc/regions/us-central1/subnetworks/n4-subnet-tenant-delta"
+        }
+      ]
+    },
+    {
+      "id": "res-inv-compute-tenant-delta",
+      "href": "/tmf-api/resourceInventoryManagement/v4/resource/res-inv-compute-tenant-delta",
+      "name": "worker-pool-upf-tenant-delta",
+      "resourceStatus": "available",
+      "operationalState": "enable",
+      "usageState": "active",
+      "@type": "LogicalResource",
+      "resourceSpecification": {
+        "id": "res-spec-compute-002",
+        "name": "ComputeFlavorSpec"
+      },
+      "resourceCharacteristic": [
+        {
+          "name": "gke_cluster_uri",
+          "value": "projects/gcp-oda-canvas-poc/locations/us-central1/clusters/oda-canvas-mt-gke"
+        },
+        {
+          "name": "k8s_namespace",
+          "value": "upf-tenant-delta"
+        },
+        {
+          "name": "k8s_namespace_uid",
+          "value": "ns-upf-delta-9f82a1c4"
+        },
+        {
+          "name": "upf_worker_pod_uids",
+          "value": "pod-upf-0,pod-upf-1"
+        },
+        {
+          "name": "workload_identity_iam_sa",
+          "value": "upf-tenant-delta-sa@gcp-oda-canvas-poc.iam.gserviceaccount.com"
+        },
+        {
+          "name": "cpu_count",
+          "value": 16
+        },
+        {
+          "name": "ram_gb",
+          "value": 64
+        },
+        {
+          "name": "numa_nodes",
+          "value": 2
+        },
+        {
+          "name": "dpdk_enabled",
+          "value": true
+        },
+        {
+          "name": "dataplane_mode",
+          "value": "SR-IOV"
+        }
+      ]
+    }
+  ]
+}

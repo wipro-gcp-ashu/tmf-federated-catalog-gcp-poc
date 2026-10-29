@@ -1,0 +1,102 @@
+{
+  "id": "cfs-spec-private5g-edge-001",
+  "href": "/tmf-api/serviceCatalogManagement/v4/serviceSpecification/cfs-spec-private5g-edge-001",
+  "name": "Private5G_Edge_Compute_CFS",
+  "description": "Customer-Facing Service providing dedicated Private 5G Edge Compute & Multi-Tenant ODA Slice with configurable throughput, latency, and HA tiers",
+  "version": "1.0",
+  "lifecycleStatus": "Active",
+  "isBundle": false,
+  "@type": "CustomerFacingServiceSpecification",
+  "@baseType": "ServiceSpecification",
+  "serviceSpecCharacteristic": [
+    {
+      "name": "throughput_tier",
+      "description": "Guaranteed aggregate user-plane throughput",
+      "valueType": "string",
+      "configurable": true,
+      "minCardinality": 1,
+      "maxCardinality": 1,
+      "serviceSpecCharacteristicValue": [
+        { "isDefault": false, "value": "1Gbps" },
+        { "isDefault": true, "value": "10Gbps" },
+        { "isDefault": false, "value": "40Gbps" }
+      ]
+    },
+    {
+      "name": "latency_tier",
+      "description": "Target packet processing latency profile",
+      "valueType": "string",
+      "configurable": true,
+      "minCardinality": 1,
+      "maxCardinality": 1,
+      "serviceSpecCharacteristicValue": [
+        { "isDefault": true, "value": "Standard" },
+        { "isDefault": false, "value": "Ultra-Low" }
+      ]
+    },
+    {
+      "name": "redundancy",
+      "description": "High availability deployment topology",
+      "valueType": "string",
+      "configurable": true,
+      "minCardinality": 1,
+      "maxCardinality": 1,
+      "serviceSpecCharacteristicValue": [
+        { "isDefault": false, "value": "single-node" },
+        { "isDefault": true, "value": "active-standby" },
+        { "isDefault": false, "value": "active-active-multizone" }
+      ]
+    },
+    {
+      "name": "decomposition_policy_rules",
+      "description": "Declarative CFS-to-RFS/Resource parameter translation rules evaluated by Order Orchestrator (TMFC003)",
+      "valueType": "array",
+      "configurable": false,
+      "serviceSpecCharacteristicValue": [
+        {
+          "isDefault": true,
+          "value": [
+            {
+              "ruleId": "RULE-LATENCY-01",
+              "condition": "cfs.latency_tier == 'Ultra-Low'",
+              "actions": [
+                "rfs('rfs-spec-upf-infra-001').compute_acceleration_profile = 'ULTRA_LOW_LATENCY_NUMA_DPDK'",
+                "resource('res-spec-compute-002').numa_nodes = 2",
+                "resource('res-spec-compute-002').dpdk_enabled = true",
+                "resource('res-spec-netpol-003').dataplane_mode = 'SR-IOV'"
+              ]
+            },
+            {
+              "ruleId": "RULE-THROUGHPUT-02",
+              "condition": "cfs.throughput_tier == '10Gbps'",
+              "actions": [
+                "resource('res-spec-compute-002').cpu_count = 16",
+                "resource('res-spec-compute-002').ram_gb = 64",
+                "resource('res-spec-storage-004').storage_class = 'premium-rwo'",
+                "resource('res-spec-storage-004').disk_size_gb = 100"
+              ]
+            },
+            {
+              "ruleId": "RULE-HA-03",
+              "condition": "cfs.redundancy == 'active-standby'",
+              "actions": [
+                "rfs('rfs-spec-upf-infra-001').subnet_topology.worker_instances = 2",
+                "resource('res-spec-compute-002').worker_instances = 2"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "serviceSpecRelationship": [
+    {
+      "id": "rfs-spec-upf-infra-001",
+      "href": "/tmf-api/serviceCatalogManagement/v4/serviceSpecification/rfs-spec-upf-infra-001",
+      "name": "5G_Core_UPF_Infra_RFS",
+      "relationshipType": "decomposesInto",
+      "role": "underlyingResourceFacingService",
+      "@referredType": "ResourceFacingServiceSpecification"
+    }
+  ]
+}

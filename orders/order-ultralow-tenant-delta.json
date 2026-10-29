@@ -1,0 +1,41 @@
+{
+  "externalId": "ORD-2026-EDGE-9001",
+  "priority": "1",
+  "description": "Self-service provisioning of Enterprise Private 5G Edge & ODA Slice for tenant-delta (Ultra-Low Latency Tier)",
+  "category": "TelcoEdgeInfrastructureOrder",
+  "@type": "ProductOrder",
+  "relatedParty": [
+    {
+      "id": "ORG-ENTERPRISE-DELTA",
+      "name": "Delta Manufacturing Corp",
+      "role": "Customer",
+      "@referredType": "Organization"
+    }
+  ],
+  "productOrderItem": [
+    {
+      "id": "100",
+      "action": "add",
+      "quantity": 1,
+      "productOffering": {
+        "id": "prod-offer-enterprise-edge-tier1",
+        "href": "/tmf-api/productCatalogManagement/v4/productOffering/prod-offer-enterprise-edge-tier1",
+        "name": "Enterprise Private Edge Infrastructure Tier 1"
+      },
+      "product": {
+        "name": "Enterprise-Edge-Slice-tenant-delta",
+        "productSpecification": {
+          "id": "prod-spec-edge-infra-t1",
+          "name": "Enterprise Private Edge & ODA Infrastructure Specification"
+        },
+        "productCharacteristic": [
+          { "name": "tenant_id", "value": "tenant-delta" },
+          { "name": "region", "value": "us-central1" },
+          { "name": "throughput_tier", "value": "10Gbps" },
+          { "name": "latency_tier", "value": "Ultra-Low" },
+          { "name": "redundancy", "value": "active-standby" }
+        ]
+      }
+    }
+  ]
+}

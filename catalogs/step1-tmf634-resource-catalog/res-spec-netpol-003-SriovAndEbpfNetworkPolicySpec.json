@@ -1,0 +1,66 @@
+{
+  "id": "res-spec-netpol-003",
+  "href": "/tmf-api/resourceCatalog/v4/resourceSpecification/res-spec-netpol-003",
+  "name": "SriovAndEbpfNetworkPolicySpec",
+  "description": "Atomic Dataplane Acceleration (SR-IOV / GKE Dataplane V2 Cilium eBPF) and Zero-Trust Network Policy Specification",
+  "version": "1.0",
+  "lifecycleStatus": "Active",
+  "@type": "LogicalResourceSpecification",
+  "@baseType": "ResourceSpecification",
+  "category": "TelcoDataplaneNetworkPolicy",
+  "resourceSpecCharacteristic": [
+    {
+      "name": "dataplane_mode",
+      "description": "User-plane packet forwarding mode (Standard Cilium eBPF vs. SR-IOV Kernel Bypass)",
+      "valueType": "string",
+      "configurable": true,
+      "resourceSpecCharacteristicValue": [
+        { "isDefault": true, "value": "Cilium-eBPF" },
+        { "isDefault": false, "value": "SR-IOV" }
+      ]
+    },
+    {
+      "name": "default_deny_ingress",
+      "description": "Enforce zero-trust default-deny cross-tenant ingress policy",
+      "valueType": "boolean",
+      "configurable": true,
+      "resourceSpecCharacteristicValue": [
+        { "isDefault": true, "value": true }
+      ]
+    },
+    {
+      "name": "strict_mtls",
+      "description": "Service Mesh mTLS enforcement mode for N4/SGi control interfaces",
+      "valueType": "string",
+      "configurable": true,
+      "resourceSpecCharacteristicValue": [
+        { "isDefault": true, "value": "STRICT" }
+      ]
+    },
+    {
+      "name": "vlan_id",
+      "description": "Dedicated 802.1Q VLAN tag for UPF N3 RAN trunking",
+      "valueType": "integer",
+      "configurable": true,
+      "resourceSpecCharacteristicValue": [
+        { "isDefault": true, "value": 2152 }
+      ]
+    },
+    {
+      "name": "iac_binding",
+      "description": "Immutable binding to Cloud Studio / Kubernetes NetworkPolicy & Firewall IaC",
+      "valueType": "object",
+      "configurable": false,
+      "resourceSpecCharacteristicValue": [
+        {
+          "isDefault": true,
+          "value": {
+            "iac_engine": "kubernetes-manifest+terraform",
+            "module_source": "./iac/helm-upf-slice/network-policies.yaml",
+            "firewall_resource": "google_compute_firewall.upf_dataplane_gtpu_pfcp"
+          }
+        }
+      ]
+    }
+  ]
+}

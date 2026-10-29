@@ -1,0 +1,99 @@
+{
+  "id": "res-spec-vpc-001",
+  "href": "/tmf-api/resourceCatalog/v4/resourceSpecification/res-spec-vpc-001",
+  "name": "TelcoVpcNetworkSpec",
+  "description": "Atomic Telco Cloud VPC and Multi-Subnet (SGi, N3, N4) Network Specification bound to GCP Terraform IaC module",
+  "version": "1.0",
+  "lifecycleStatus": "Active",
+  "@type": "LogicalResourceSpecification",
+  "@baseType": "ResourceSpecification",
+  "category": "CloudNetworkInfrastructure",
+  "resourceSpecCharacteristic": [
+    {
+      "name": "region",
+      "description": "Target Google Cloud deployment region",
+      "valueType": "string",
+      "configurable": true,
+      "minCardinality": 1,
+      "maxCardinality": 1,
+      "resourceSpecCharacteristicValue": [
+        { "isDefault": true, "value": "us-central1" }
+      ]
+    },
+    {
+      "name": "vpc_cidr",
+      "description": "Primary Supernet CIDR block for the Telco Edge VPC",
+      "valueType": "string",
+      "configurable": true,
+      "minCardinality": 1,
+      "maxCardinality": 1,
+      "resourceSpecCharacteristicValue": [
+        { "isDefault": true, "value": "10.40.0.0/16" }
+      ]
+    },
+    {
+      "name": "sgi_subnet_cidr",
+      "description": "SGi / N6 External Data Network subnet CIDR",
+      "valueType": "string",
+      "configurable": true,
+      "minCardinality": 1,
+      "maxCardinality": 1,
+      "resourceSpecCharacteristicValue": [
+        { "isDefault": true, "value": "10.40.1.0/24" }
+      ]
+    },
+    {
+      "name": "n3_subnet_cidr",
+      "description": "N3 5G RAN-to-UPF GTP-U User-Plane subnet CIDR",
+      "valueType": "string",
+      "configurable": true,
+      "minCardinality": 1,
+      "maxCardinality": 1,
+      "resourceSpecCharacteristicValue": [
+        { "isDefault": true, "value": "10.40.2.0/24" }
+      ]
+    },
+    {
+      "name": "n4_subnet_cidr",
+      "description": "N4 SMF-to-UPF PFCP Control-Plane subnet CIDR",
+      "valueType": "string",
+      "configurable": true,
+      "minCardinality": 1,
+      "maxCardinality": 1,
+      "resourceSpecCharacteristicValue": [
+        { "isDefault": true, "value": "10.40.3.0/24" }
+      ]
+    },
+    {
+      "name": "cloud_nat_enabled",
+      "description": "Enable Google Cloud Router and NAT for outbound package egress",
+      "valueType": "boolean",
+      "configurable": true,
+      "resourceSpecCharacteristicValue": [
+        { "isDefault": true, "value": true }
+      ]
+    },
+    {
+      "name": "iac_binding",
+      "description": "Immutable binding to Cloud Studio / Terraform execution artifact",
+      "valueType": "object",
+      "configurable": false,
+      "resourceSpecCharacteristicValue": [
+        {
+          "isDefault": true,
+          "value": {
+            "iac_engine": "terraform",
+            "module_source": "./iac/terraform",
+            "resources": [
+              "google_compute_network.upf_vpc",
+              "google_compute_subnetwork.sgi_subnet",
+              "google_compute_subnetwork.n3_subnet",
+              "google_compute_subnetwork.n4_subnet"
+            ],
+            "provider": "hashicorp/google ~> 5.30"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,109 @@
+{
+  "id": "SVC-ORD-TENANT-DELTA",
+  "externalId": "ORD-2026-EDGE-9001",
+  "href": "/tmf-api/serviceOrdering/v4/serviceOrder/SVC-ORD-TENANT-DELTA",
+  "state": "completed",
+  "description": "Decomposed CFS and RFS orchestration order for tenant-delta",
+  "@type": "ServiceOrder",
+  "triggeredPolicyRules": [
+    {
+      "ruleId": "RULE-LATENCY-01",
+      "condition": "cfs.latency_tier == 'Ultra-Low'",
+      "derived_overrides": {
+        "rfs.compute_acceleration_profile": "ULTRA_LOW_LATENCY_NUMA_DPDK",
+        "res-spec-compute-002.numa_nodes": 2,
+        "res-spec-compute-002.dpdk_enabled": true,
+        "res-spec-netpol-003.dataplane_mode": "SR-IOV"
+      }
+    },
+    {
+      "ruleId": "RULE-THROUGHPUT-02",
+      "condition": "cfs.throughput_tier == '10Gbps'",
+      "derived_overrides": {
+        "res-spec-compute-002.cpu_count": 16,
+        "res-spec-compute-002.ram_gb": 64,
+        "res-spec-storage-004.storage_class": "premium-rwo"
+      }
+    },
+    {
+      "ruleId": "RULE-HA-03",
+      "condition": "cfs.redundancy == 'active-standby'",
+      "derived_overrides": {
+        "rfs.worker_instances": 2,
+        "res-spec-compute-002.worker_instances": 2
+      }
+    }
+  ],
+  "serviceOrderItem": [
+    {
+      "id": "1",
+      "action": "add",
+      "service": {
+        "name": "Private5G_Edge_Compute_CFS_tenant-delta",
+        "serviceType": "CFS",
+        "state": "active",
+        "serviceSpecification": {
+          "id": "cfs-spec-private5g-edge-001",
+          "name": "Private5G_Edge_Compute_CFS",
+          "@referredType": "CustomerFacingServiceSpecification"
+        },
+        "serviceCharacteristic": [
+          {
+            "name": "tenant_id",
+            "value": "tenant-delta"
+          },
+          {
+            "name": "throughput_tier",
+            "value": "10Gbps"
+          },
+          {
+            "name": "latency_tier",
+            "value": "Ultra-Low"
+          },
+          {
+            "name": "redundancy",
+            "value": "active-standby"
+          }
+        ],
+        "supportingService": [
+          {
+            "id": "2",
+            "name": "5G_Core_UPF_Infra_RFS_tenant-delta"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2",
+      "action": "add",
+      "service": {
+        "name": "5G_Core_UPF_Infra_RFS_tenant-delta",
+        "serviceType": "RFS",
+        "state": "active",
+        "serviceSpecification": {
+          "id": "rfs-spec-upf-infra-001",
+          "name": "5G_Core_UPF_Infra_RFS",
+          "@referredType": "ResourceFacingServiceSpecification"
+        },
+        "serviceCharacteristic": [
+          {
+            "name": "compute_acceleration_profile",
+            "value": "ULTRA_LOW_LATENCY_NUMA_DPDK"
+          },
+          {
+            "name": "worker_instances",
+            "value": 2
+          },
+          {
+            "name": "subnets",
+            "value": [
+              "SGi",
+              "N3",
+              "N4"
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,145 @@
+{
+  "id": "RES-ORD-TENANT-DELTA",
+  "externalId": "ORD-2026-EDGE-9001",
+  "href": "/tmf-api/resourceOrdering/v4/resourceOrder/RES-ORD-TENANT-DELTA",
+  "state": "completed",
+  "description": "Cloud Studio IaC execution order generated from 5G_Core_UPF_Infra_RFS decomposition for tenant-delta",
+  "@type": "ResourceOrder",
+  "resourceOrderItem": [
+    {
+      "id": "res-item-vpc",
+      "action": "add",
+      "resource": {
+        "name": "vpc-upf-tenant-delta",
+        "resourceSpecification": {
+          "id": "res-spec-vpc-001",
+          "name": "TelcoVpcNetworkSpec"
+        },
+        "resourceCharacteristic": [
+          {
+            "name": "region",
+            "value": "us-central1"
+          },
+          {
+            "name": "sgi_subnet_cidr",
+            "value": "10.160.1.0/24"
+          },
+          {
+            "name": "n3_subnet_cidr",
+            "value": "10.160.2.0/24"
+          },
+          {
+            "name": "n4_subnet_cidr",
+            "value": "10.160.3.0/24"
+          },
+          {
+            "name": "iac_binding",
+            "value": {
+              "iac_engine": "terraform",
+              "module_source": "./iac/terraform",
+              "resources": [
+                "google_compute_network.upf_vpc",
+                "google_compute_subnetwork.sgi_subnet",
+                "google_compute_subnetwork.n3_subnet",
+                "google_compute_subnetwork.n4_subnet"
+              ],
+              "provider": "hashicorp/google ~> 5.30"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "res-item-compute",
+      "action": "add",
+      "resource": {
+        "name": "worker-pool-upf-tenant-delta",
+        "resourceSpecification": {
+          "id": "res-spec-compute-002",
+          "name": "ComputeFlavorSpec"
+        },
+        "resourceCharacteristic": [
+          {
+            "name": "cpu_count",
+            "value": 16
+          },
+          {
+            "name": "ram_gb",
+            "value": 64
+          },
+          {
+            "name": "numa_nodes",
+            "value": 2
+          },
+          {
+            "name": "dpdk_enabled",
+            "value": true
+          },
+          {
+            "name": "worker_instances",
+            "value": 2
+          },
+          {
+            "name": "iac_binding",
+            "value": {
+              "iac_engine": "terraform+helm",
+              "module_source": "./iac/terraform",
+              "helm_chart": "./iac/helm-upf-slice",
+              "provider": "hashicorp/google ~> 5.30"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "res-item-netpol",
+      "action": "add",
+      "resource": {
+        "name": "netpol-upf-tenant-delta",
+        "resourceSpecification": {
+          "id": "res-spec-netpol-003",
+          "name": "SriovAndEbpfNetworkPolicySpec"
+        },
+        "resourceCharacteristic": [
+          {
+            "name": "dataplane_mode",
+            "value": "SR-IOV"
+          },
+          {
+            "name": "default_deny_ingress",
+            "value": true
+          },
+          {
+            "name": "strict_mtls",
+            "value": "STRICT"
+          },
+          {
+            "name": "vlan_id",
+            "value": 2152
+          }
+        ]
+      }
+    },
+    {
+      "id": "res-item-storage",
+      "action": "add",
+      "resource": {
+        "name": "storage-upf-tenant-delta",
+        "resourceSpecification": {
+          "id": "res-spec-storage-004",
+          "name": "StoragePoolSpec"
+        },
+        "resourceCharacteristic": [
+          {
+            "name": "storage_class",
+            "value": "premium-rwo"
+          },
+          {
+            "name": "disk_size_gb",
+            "value": 100
+          }
+        ]
+      }
+    }
+  ]
+}

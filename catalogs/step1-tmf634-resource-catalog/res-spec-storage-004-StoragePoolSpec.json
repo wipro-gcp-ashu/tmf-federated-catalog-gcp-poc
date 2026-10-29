@@ -1,0 +1,49 @@
+{
+  "id": "res-spec-storage-004",
+  "href": "/tmf-api/resourceCatalog/v4/resourceSpecification/res-spec-storage-004",
+  "name": "StoragePoolSpec",
+  "description": "Atomic Persistent Block Storage Volume Specification for UPF CDR Buffering & ODA State",
+  "version": "1.0",
+  "lifecycleStatus": "Active",
+  "@type": "LogicalResourceSpecification",
+  "@baseType": "ResourceSpecification",
+  "category": "CloudStorageInfrastructure",
+  "resourceSpecCharacteristic": [
+    {
+      "name": "storage_class",
+      "description": "GKE CSI Persistent Disk storage class tier",
+      "valueType": "string",
+      "configurable": true,
+      "resourceSpecCharacteristicValue": [
+        { "isDefault": true, "value": "standard-rwo" },
+        { "isDefault": false, "value": "premium-rwo" }
+      ]
+    },
+    {
+      "name": "disk_size_gb",
+      "description": "Allocated persistent volume capacity in GiB",
+      "valueType": "integer",
+      "configurable": true,
+      "resourceSpecCharacteristicValue": [
+        { "isDefault": true, "value": 20 },
+        { "isDefault": false, "value": 100 }
+      ]
+    },
+    {
+      "name": "iac_binding",
+      "description": "Immutable binding to GKE PersistentDisk CSI driver template",
+      "valueType": "object",
+      "configurable": false,
+      "resourceSpecCharacteristicValue": [
+        {
+          "isDefault": true,
+          "value": {
+            "iac_engine": "kubernetes-csi",
+            "driver": "pd.csi.storage.gke.io",
+            "manifest": "./iac/helm-upf-slice/storage-pvc.yaml"
+          }
+        }
+      ]
+    }
+  ]
+}

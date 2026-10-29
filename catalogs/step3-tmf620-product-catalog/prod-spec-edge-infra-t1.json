@@ -1,0 +1,55 @@
+{
+  "id": "prod-spec-edge-infra-t1",
+  "href": "/tmf-api/productCatalogManagement/v4/productSpecification/prod-spec-edge-infra-t1",
+  "name": "Enterprise Private Edge & ODA Infrastructure Specification",
+  "productNumber": "WIPRO-GCP-EDGE-SPEC-001",
+  "lifecycleStatus": "Active",
+  "version": "1.0",
+  "@type": "ProductSpecification",
+  "serviceSpecification": [
+    {
+      "id": "cfs-spec-private5g-edge-001",
+      "href": "/tmf-api/serviceCatalogManagement/v4/serviceSpecification/cfs-spec-private5g-edge-001",
+      "name": "Private5G_Edge_Compute_CFS",
+      "version": "1.0",
+      "@referredType": "CustomerFacingServiceSpecification"
+    }
+  ],
+  "productSpecCharacteristic": [
+    {
+      "name": "tenant_id",
+      "description": "Unique tenant identifier (validated at order ingestion: lowercase alphanumeric, e.g., tenant-delta)",
+      "valueType": "string",
+      "configurable": true,
+      "minCardinality": 1,
+      "maxCardinality": 1
+    },
+    {
+      "name": "throughput_tier",
+      "description": "Selected commercial bandwidth tier mapped to CFS",
+      "valueType": "string",
+      "configurable": true,
+      "productSpecCharacteristicValue": [
+        { "isDefault": true, "value": "10Gbps" }
+      ]
+    },
+    {
+      "name": "latency_tier",
+      "description": "Selected latency SLA tier mapped to CFS",
+      "valueType": "string",
+      "configurable": true,
+      "productSpecCharacteristicValue": [
+        { "isDefault": true, "value": "Ultra-Low" }
+      ]
+    },
+    {
+      "name": "redundancy",
+      "description": "High availability topology mapped to CFS",
+      "valueType": "string",
+      "configurable": true,
+      "productSpecCharacteristicValue": [
+        { "isDefault": true, "value": "active-standby" }
+      ]
+    }
+  ]
+}

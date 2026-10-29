@@ -1,0 +1,41 @@
+{
+  "id": "prod-offer-enterprise-edge-tier1",
+  "href": "/tmf-api/productCatalogManagement/v4/productOffering/prod-offer-enterprise-edge-tier1",
+  "name": "Enterprise Private Edge Infrastructure Tier 1",
+  "description": "Self-provisioned dedicated Private 5G Edge & ODA Slice with 10Gbps throughput, Ultra-Low latency (NUMA/DPDK/SR-IOV), and Active-Standby HA",
+  "lifecycleStatus": "Active",
+  "version": "1.0",
+  "isBundle": false,
+  "isSellable": true,
+  "@type": "ProductOffering",
+  "productSpecification": {
+    "id": "prod-spec-edge-infra-t1",
+    "href": "/tmf-api/productCatalogManagement/v4/productSpecification/prod-spec-edge-infra-t1",
+    "name": "Enterprise Private Edge & ODA Infrastructure Specification",
+    "@referredType": "ProductSpecification"
+  },
+  "productOfferingTerm": [
+    {
+      "name": "12-Month Enterprise Commitment & 99.99% Availability SLA",
+      "description": "Includes automated Day-0/Day-1 zero-touch provisioning and 24x7 SRE monitoring",
+      "duration": { "amount": 12, "units": "Month" }
+    }
+  ],
+  "productOfferingPrice": [
+    {
+      "id": "pop-rc-monthly-tier1",
+      "name": "Tier 1 Flat Monthly Recurring Charge",
+      "priceType": "recurring",
+      "recurringChargePeriodType": "monthly",
+      "recurringChargePeriodLength": 1,
+      "price": { "unit": "USD", "value": 2450.00 }
+    },
+    {
+      "id": "pop-usage-egress",
+      "name": "Usage-Based Egress Data Charge",
+      "priceType": "usage",
+      "unitOfMeasure": { "amount": 1, "units": "TB" },
+      "price": { "unit": "USD", "value": 45.00 }
+    }
+  ]
+}

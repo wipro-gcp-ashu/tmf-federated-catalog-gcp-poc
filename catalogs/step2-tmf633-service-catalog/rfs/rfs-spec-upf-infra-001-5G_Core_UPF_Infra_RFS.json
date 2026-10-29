@@ -1,0 +1,75 @@
+{
+  "id": "rfs-spec-upf-infra-001",
+  "href": "/tmf-api/serviceCatalogManagement/v4/serviceSpecification/rfs-spec-upf-infra-001",
+  "name": "5G_Core_UPF_Infra_RFS",
+  "description": "Resource-Facing Service composing 1 VPC, 3 Telco Subnets (SGi, N3, N4), SR-IOV/eBPF network policy, Storage Pool, and worker compute instances",
+  "version": "1.0",
+  "lifecycleStatus": "Active",
+  "isBundle": false,
+  "@type": "ResourceFacingServiceSpecification",
+  "@baseType": "ServiceSpecification",
+  "serviceSpecCharacteristic": [
+    {
+      "name": "orchestration_driver",
+      "valueType": "string",
+      "configurable": false,
+      "serviceSpecCharacteristicValue": [
+        { "isDefault": true, "value": "CloudStudio-Terraform-Helm-Pipeline" }
+      ]
+    },
+    {
+      "name": "subnet_topology",
+      "valueType": "object",
+      "configurable": true,
+      "serviceSpecCharacteristicValue": [
+        {
+          "isDefault": true,
+          "value": {
+            "vpc_count": 1,
+            "subnets": ["SGi-External-Data", "N3-RAN-UserPlane", "N4-SMF-Control"],
+            "worker_instances": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "compute_acceleration_profile",
+      "valueType": "string",
+      "configurable": true,
+      "serviceSpecCharacteristicValue": [
+        { "isDefault": true, "value": "STANDARD_EBPF" },
+        { "isDefault": false, "value": "ULTRA_LOW_LATENCY_NUMA_DPDK" }
+      ]
+    }
+  ],
+  "resourceSpecification": [
+    {
+      "id": "res-spec-vpc-001",
+      "href": "/tmf-api/resourceCatalog/v4/resourceSpecification/res-spec-vpc-001",
+      "name": "TelcoVpcNetworkSpec",
+      "version": "1.0",
+      "@referredType": "LogicalResourceSpecification"
+    },
+    {
+      "id": "res-spec-compute-002",
+      "href": "/tmf-api/resourceCatalog/v4/resourceSpecification/res-spec-compute-002",
+      "name": "ComputeFlavorSpec",
+      "version": "1.0",
+      "@referredType": "LogicalResourceSpecification"
+    },
+    {
+      "id": "res-spec-netpol-003",
+      "href": "/tmf-api/resourceCatalog/v4/resourceSpecification/res-spec-netpol-003",
+      "name": "SriovAndEbpfNetworkPolicySpec",
+      "version": "1.0",
+      "@referredType": "LogicalResourceSpecification"
+    },
+    {
+      "id": "res-spec-storage-004",
+      "href": "/tmf-api/resourceCatalog/v4/resourceSpecification/res-spec-storage-004",
+      "name": "StoragePoolSpec",
+      "version": "1.0",
+      "@referredType": "LogicalResourceSpecification"
+    }
+  ]
+}
